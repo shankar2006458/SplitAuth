@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SplitAuth</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <style>
+* { font-family: 'Outfit', sans-serif; }
+html, body { height: 100%; margin: 0; overflow: hidden; }
+body { background: #0b1020; }
+
+.app-wrapper { height: 100%; width: 100%; overflow-y: auto; overflow-x: hidden; position: relative; }
+
+.mesh-bg {
+  position: fixed; inset: 0; z-index: 0;
+  background: radial-gradient(ellipse at 20% 50%, rgba(0,255,255,0.05) 0%, transparent 50%),
+              radial-gradient(ellipse at 80% 20%, rgba(139,92,246,0.07) 0%, transparent 50%),
+              radial-gradient(ellipse at 50% 80%, rgba(0,255,255,0.03) 0%, transparent 50%);
+  animation: meshMove 20s ease-in-out infinite;
+}
+@keyframes meshMove {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.05) rotate(1deg); }
+}
+
+.glass {
+  background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 24px;
+}
+
+.glow-cyan { box-shadow: 0 0 30px rgba(0,255,255,0.15), 0 0 60px rgba(0,255,255,0.05); }
+.glow-purple { box-shadow: 0 0 30px rgba(139,92,246,0.2); }
+
+.btn-primary {
+  background: linear-gradient(135deg, #00e5ff, #7c3aed);
+  border-radius: 16px; padding: 14px 32px;
+  font-weight: 600; color: white; border: none; cursor: pointer;
+  transition: all 0.3s ease; position: relative; overflow: hidden;
+}
+.btn-primary:hover { transform: scale(1.03); box-shadow: 0 0 40px rgba(0,229,255,0.3); }
+.btn-primary:active { transform: scale(0.97); }
+
+.btn-secondary {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px; padding: 14px 32px;
+  font-weight: 500; color: rgba(255,255,255,0.7); cursor: pointer;
+  transition: all 0.3s ease;
+}
+.btn-secondary:hover { background: rgba(255,255,255,0.1); border-color: rgba(0,255,255,0.3); }
+
+.otp-box {
+  width: 44px;
+  height: 56px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  background: rgba(255,255,255,0.03);
+  border: 2px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  color: #00e5ff;
+  outline: none;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+@media (max-width: 420px) {
+  .otp-box {
+    width: 40px;
+    height: 52px;
+    font-size: 18px;
+    border-radius: 12px;
+  }
+}
+#otpSection {
+  width: 100%;
+  overflow: hidden;
+}
+.otp-box:focus { border-color: #00e5ff; box-shadow: 0 0 20px rgba(0,255,255,0.2); }
+.otp-box.filled { border-color: #7c3aed; background: rgba(139,92,246,0.1); }
+.otp-box.error { border-color: #ef4444; animation: shake 0.5s ease; }
+
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)} }
+@keyframes fadeUp { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@keyframes scanLine { 0%{top:0} 100%{top:100%} }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+
+.fade-up { animation: fadeUp 0.6s ease forwards; }
+.particle {
+  position: absolute; width: 3px; height: 3px; background: rgba(0,255,255,0.3);
+  border-radius: 50%; animation: float 4s ease-in-out infinite;
+}
+
+.screen {
+  position: fixed;
+  inset: 0;
+  display: none;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s cubic-bezier(0.23, 1, 0.320, 1);
+  z-index: 10;
+}
+
+.screen.active {
+  display: flex;
+  opacity: 1;
+  pointer-events: auto;
+}
+.scan-line {
+  position: absolute; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, #00e5ff, transparent);
+  animation: scanLine 2s linear infinite; opacity: 0.5;
+}
+
+.timer-ring { transition: stroke-dashoffset 1s linear; }
+
+.trusted-toggle {
+  width: 48px; height: 26px; border-radius: 13px; cursor: pointer;
+  background: rgba(255,255,255,0.1); transition: all 0.3s ease; position: relative;
+}
+.trusted-toggle.active { background: linear-gradient(135deg, #00e5ff, #7c3aed); }
+.trusted-toggle::after {
+  content: ''; position: absolute; width: 20px; height: 20px; border-radius: 50%;
+  background: white; top: 3px; left: 3px; transition: all 0.3s ease;
+}
+.trusted-toggle.active::after { left: 25px; }
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.toast {
+  min-width: 260px;
+  max-width: 320px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+  animation: toastSlide 0.35s ease forwards;
+}
+
+.toast.success {
+  background: rgba(16,185,129,0.15);
+  border-color: rgba(16,185,129,0.35);
+}
+
+.toast.error {
+  background: rgba(239,68,68,0.15);
+  border-color: rgba(239,68,68,0.35);
+}
+
+.toast.info {
+  background: rgba(0,229,255,0.12);
+  border-color: rgba(0,229,255,0.3);
+}
+
+@keyframes toastSlide {
+  from {
+    opacity: 0;
+    transform: translateX(100%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@media (max-width: 640px) {
+  .toast-container {
+    left: 16px;
+    right: 16px;
+    top: 16px;
+  }
+
+  .toast {
+    min-width: 100%;
+    max-width: 100%;
+  }
+}
+</style>
+  <style>body { box-sizing: border-box; }</style>
+ </head>
+ <body class="h-full">
+  <div class="app-wrapper" id="app">
+   <div class="mesh-bg"></div><!-- Particles -->
+   <div id="particles" class="fixed inset-0 z-0 pointer-events-none"></div><!-- Landing Screen -->
+   <div id="landing" class="screen active flex-col items-center justify-center min-h-full relative z-10 px-6 py-12">
+    <div class="fade-up flex flex-col items-center text-center max-w-md mx-auto"><!-- Shield Logo -->
+     <div class="relative mb-8">
+      <div class="w-24 h-24 rounded-full flex items-center justify-center glow-cyan" style="background:rgba(0,255,255,0.05); border:2px solid rgba(0,255,255,0.2);"><i data-lucide="shield-check" style="width:48px;height:48px;color:#00e5ff;"></i>
+      </div>
+      <div class="absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center" style="background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.3);"><i data-lucide="lock" style="width:14px;height:14px;color:#a78bfa;"></i>
+      </div>
+     </div>
+     <h1 class="text-3xl md:text-4xl font-800 text-white mb-2" style="letter-spacing:-0.5px;">Split<span style="color:#00e5ff;">Auth</span></h1>
+     <h2 id="headline" class="text-xl md:text-2xl font-600 text-white mt-4 mb-3">Secure Authentication in Seconds</h2>
+     <p id="subtitle" class="text-sm md:text-base mb-8" style="color:rgba(255,255,255,0.5);">Split OTP verification — part shown here, part sent to you. Combine both to verify your identity securely.</p>
+     <div class="flex flex-col sm:flex-row gap-3 w-full max-w-xs"><button class="btn-primary flex-1" onclick="showScreen('verify')">Start Verification</button> <button class="btn-secondary flex-1" onclick="showScreen('verify')">Learn More</button>
+     </div><!-- Floating icons -->
+     <div class="flex gap-6 mt-12 opacity-30"><i data-lucide="fingerprint" style="width:20px;height:20px;color:#00e5ff;animation:float 3s ease-in-out infinite;"></i> <i data-lucide="key" style="width:20px;height:20px;color:#a78bfa;animation:float 3.5s ease-in-out infinite;"></i> <i data-lucide="scan" style="width:20px;height:20px;color:#00e5ff;animation:float 4s ease-in-out infinite;"></i>
+     </div>
+    </div>
+   </div><!-- Verification Screen -->
+   <div id="verify" class="screen flex-col items-center justify-center min-h-full relative z-10 px-4 py-8">
+    <div class="glass glow-cyan p-6 md:p-8 w-full max-w-md lg:max-w-lg mx-auto fade-up">
+     <div class="flex items-center gap-3 mb-6">
+      <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(0,255,255,0.1);"><i data-lucide="shield" style="width:20px;height:20px;color:#00e5ff;"></i>
+      </div>
+      <div>
+       <h3 class="text-white font-600 text-lg">Identity Verification</h3>
+       <p class="text-xs" style="color:rgba(255,255,255,0.4);" id="deviceInfo">Detecting device...</p>
+      </div>
+     </div><!-- Email Input -->
+     <div id="emailSection"><label class="text-xs font-500 mb-2 block" style="color:rgba(255,255,255,0.5);">Email Address</label> <input type="email" id="emailInput" placeholder="you@example.com" class="w-full px-4 py-3 rounded-xl text-white text-sm outline-none mb-4 transition-all" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);" onfocus="this.style.borderColor='rgba(0,255,255,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"> <button class="btn-primary w-full text-sm" onclick="generateOTP()">Generate Secure Code</button>
+     </div><!-- OTP Section (hidden initially) -->
+     <div id="otpSection" class="hidden"><!-- Shown digits -->
+      <div class="text-center mb-4">
+       <p class="text-xs mb-2" style="color:rgba(255,255,255,0.4);">Your first 2 digits</p>
+       <div class="flex justify-center gap-3">
+        <div class="w-14 h-16 rounded-xl flex items-center justify-center text-2xl font-700" style="background:rgba(0,255,255,0.1);border:1px solid rgba(0,255,255,0.3);color:#00e5ff;" id="shown1">
+         -
+        </div>
+        <div class="w-14 h-16 rounded-xl flex items-center justify-center text-2xl font-700" style="background:rgba(0,255,255,0.1);border:1px solid rgba(0,255,255,0.3);color:#00e5ff;" id="shown2">
+         -
+        </div>
+       </div>
+       <p class="text-xs mt-3" style="color:rgba(139,92,246,0.8);" id="sentMsg">✓ Remaining 4 digits sent to your email</p>
+      </div><!-- Scan line effect -->
+      <div class="relative overflow-hidden rounded-xl p-4 mb-4" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);">
+       <div class="scan-line" id="scanLine"></div>
+       <p class="text-xs text-center mb-3" style="color:rgba(255,255,255,0.5);">Enter complete 6-digit code</p>
+       <div class="flex justify-between items-center w-full max-w-[320px] mx-auto" id="otpBoxes"><input type="text" maxlength="1" class="otp-box" data-idx="0"> <input type="text" maxlength="1" class="otp-box" data-idx="1"> <input type="text" maxlength="1" class="otp-box" data-idx="2"> <input type="text" maxlength="1" class="otp-box" data-idx="3"> <input type="text" maxlength="1" class="otp-box" data-idx="4"> <input type="text" maxlength="1" class="otp-box" data-idx="5">
+       </div>
+      </div><button class="btn-primary w-full text-sm mb-3" id="verifyBtn" onclick="verifyOTP()">Verify Code</button> <!-- Timer -->
+      <div class="flex items-center justify-between"><button class="text-xs cursor-pointer" style="color:rgba(255, 255, 255, 0.878);" id="resendBtn" onclick="resendOTP()" disabled>Resend Code (<span id="timer">60</span>s)</button> <button class="text-xs cursor-pointer" style="color:rgba(0,255,255,0.6);" onclick="resetVerify()">Change method</button>
+      </div><!-- Trusted device -->
+      <div class="flex items-center justify-between mt-4 pt-4" style="border-top:1px solid rgba(255,255,255,0.05);"><span class="text-xs" style="color:rgba(255,255,255,0.4);">Trust this device</span>
+       <div class="trusted-toggle" id="trustToggle" onclick="this.classList.toggle('active')"></div>
+      </div>
+     </div><!-- Loading state -->
+     <div id="loadingSection" class="hidden text-center py-8">
+      <div class="inline-block w-12 h-12 rounded-full border-2 border-t-transparent animate-spin mb-3" style="border-color:rgba(0,255,255,0.3);border-top-color:transparent;"></div>
+      <p class="text-sm" style="color:rgba(255,255,255,0.5);">Encrypting &amp; verifying...</p>
+     </div>
+    </div><button class="mt-6 text-xs cursor-pointer" style="color:rgba(255,255,255,0.3);" onclick="showScreen('landing')">← Back to home</button>
+   </div><!-- Success Screen -->
+   <div id="success" class="screen flex-col items-center justify-center min-h-full relative z-10 px-6 py-12">
+    <div class="fade-up flex flex-col items-center text-center">
+     <div class="relative mb-6">
+      <div class="w-28 h-28 rounded-full flex items-center justify-center" style="background:rgba(16,185,129,0.1);border:2px solid rgba(16,185,129,0.3);box-shadow:0 0 60px rgba(16,185,129,0.2);">
+       <svg width="48" height="48" viewbox="0 0 48 48" fill="none"><path id="checkPath" d="M12 24 L20 32 L36 16" stroke="#10b981" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="60" stroke-dashoffset="60" style="animation:draw 0.8s ease 0.3s forwards;" />
+       </svg>
+      </div>
+     </div>
+     <h2 class="text-2xl font-700 text-white mb-2">Verification Successful</h2>
+     <p class="text-sm mb-8" style="color:rgba(255,255,255,0.5);">Your identity has been confirmed securely.</p><button class="btn-primary" onclick="restartApp()">Continue</button>
+    </div>
+   </div>
+  </div>
+  <div class="toast-container" id="toastContainer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+  <script>
+    emailjs.init("fPw6qdlxnBqUmBWNb");
+// SDK init
+const defaultConfig = {
+  headline: "Secure Authentication in Seconds",
+  subtitle: "Split OTP verification — part shown here, part sent to you. Combine both to verify your identity securely.",
+  background_color: "#0b1020",
+  accent_color: "#00e5ff",
+  surface_color: "rgba(255,255,255,0.03)",
+  text_color: "#ffffff",
+  secondary_action_color: "#7c3aed",
+  font_family: "Outfit",
+  font_size: 16
+};
+
+// App Logic
+let currentOTP = '';
+let currentEmail = '';
+let timerInterval = null;
+let attempts = 0;
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => { s.classList.remove('active'); });
+  const el = document.getElementById(id);
+  el.classList.add('active');
+  if (id === 'verify') detectDevice();
+}
+
+function detectDevice() {
+  const ua = navigator.userAgent;
+  const browser = ua.includes('Chrome') ? 'Chrome' : ua.includes('Firefox') ? 'Firefox' : ua.includes('Safari') ? 'Safari' : 'Browser';
+  const os = ua.includes('Mac') ? 'macOS' : ua.includes('Win') ? 'Windows' : ua.includes('Android') ? 'Android' : ua.includes('iPhone') ? 'iOS' : 'Device';
+  document.getElementById('deviceInfo').textContent = `${browser} on ${os}`;
+}
+
+function saveSession() {
+  localStorage.setItem('splitAuthData', JSON.stringify({
+    otp: currentOTP,
+    attempts,
+    expiresAt: Date.now() + 60000,
+    shown1: currentOTP[0],
+    shown2: currentOTP[1],
+    email: currentEmail
+  }));
+}
+
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toastContainer');
+
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(100%)';
+
+    setTimeout(() => {
+      toast.remove();
+    }, 300);
+  }, 3000);
+}
+
+function generateOTP() {
+    currentEmail = document.getElementById('emailInput').value;
+
+    const email = currentEmail;
+
+  if (!email || !email.includes('@')) {
+    document.getElementById('emailInput').style.borderColor = '#ef4444';
+    showToast('Please enter a valid email address', 'error');
+    return;
+  }
+
+  currentOTP = String(Math.floor(100000 + Math.random() * 900000));
+  const hiddenDigits = currentOTP.slice(2);
+
+  emailjs.send(
+    "service_otty55i",
+    "template_yzndrer",
+    {
+      to_email: email,
+      otp_code: hiddenDigits
+    }
+  )
+  .then(() => {
+
+    showToast('OTP sent to your email', 'success');
+
+    saveSession();
+
+    document.getElementById('emailSection').classList.add('hidden');
+    document.getElementById('otpSection').classList.remove('hidden');
+
+    setTimeout(() => {
+      document.getElementById('shown1').textContent = currentOTP[0];
+    }, 300);
+
+    setTimeout(() => {
+      document.getElementById('shown2').textContent = currentOTP[1];
+    }, 600);
+
+    startTimer();
+    setupOTPInputs();
+
+  })
+    .catch((error) => {
+
+    console.error('EMAILJS FULL ERROR:', error);
+
+    alert(JSON.stringify(error));
+
+    showToast('Failed to send OTP email', 'error');
+
+    });
+}
+
+function setupOTPInputs() {
+
+  const oldBoxes = document.querySelectorAll('.otp-box');
+
+  oldBoxes.forEach(box => {
+    const clone = box.cloneNode(true);
+    box.parentNode.replaceChild(clone, box);
+  });
+
+  const boxes = document.querySelectorAll('.otp-box');
+
+  boxes.forEach((box, i) => {
+
+    box.value = '';
+    box.classList.remove('filled', 'error');
+
+    box.addEventListener('input', (e) => {
+      const val = e.target.value.replace(/\D/g, '');
+      e.target.value = val;
+
+      if (val) {
+        box.classList.add('filled');
+
+        if (i < boxes.length - 1) {
+          boxes[i + 1].focus();
+        }
+      } else {
+        box.classList.remove('filled');
+      }
+    });
+
+    box.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !box.value && i > 0) {
+        boxes[i - 1].focus();
+      }
+    });
+
+    box.addEventListener('paste', (e) => {
+      e.preventDefault();
+
+      const paste = (e.clipboardData.getData('text') || '')
+        .replace(/\D/g, '')
+        .slice(0, 6);
+
+      paste.split('').forEach((char, idx) => {
+        if (boxes[idx]) {
+          boxes[idx].value = char;
+          boxes[idx].classList.add('filled');
+        }
+      });
+
+      const focusIndex = Math.min(paste.length, boxes.length - 1);
+      boxes[focusIndex].focus();
+    });
+
+  });
+
+  boxes[0].focus();
+}
+
+function startTimer(savedEndTime = null) {
+  const resendBtn = document.getElementById('resendBtn');
+
+  resendBtn.disabled = true;
+  resendBtn.style.opacity = '0.4';
+
+  const endTime = savedEndTime || (Date.now() + 60000);
+
+  clearInterval(timerInterval);
+
+  function updateTimer() {
+    const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+
+    if (remaining > 0) {
+      resendBtn.innerHTML = `Resend Code (<span id="timer">${remaining}</span>s)`;
+    } else {
+      clearInterval(timerInterval);
+
+      resendBtn.disabled = false;
+      resendBtn.style.opacity = '1';
+      resendBtn.textContent = 'Resend Code';
+
+      localStorage.removeItem('splitAuthData');
+    }
+  }
+
+  updateTimer();
+
+  timerInterval = setInterval(updateTimer, 1000);
+}
+
+function resendOTP() {
+
+  if (!currentEmail) {
+    showToast('Email missing. Please restart verification.', 'error');
+    return;
+  }
+
+  currentOTP = String(Math.floor(100000 + Math.random() * 900000));
+
+  const hiddenDigits = currentOTP.slice(2);
+
+  emailjs.send(
+    "service_otty55i",
+    "template_yzndrer",
+    {
+      to_email: currentEmail,
+      otp_code: hiddenDigits
+    }
+  )
+  .then(() => {
+
+    saveSession();
+
+    document.getElementById('shown1').textContent = currentOTP[0];
+    document.getElementById('shown2').textContent = currentOTP[1];
+
+    startTimer();
+
+    showToast('New OTP sent successfully', 'success');
+
+    document.querySelectorAll('.otp-box').forEach(box => {
+      box.value = '';
+      box.classList.remove('filled', 'error');
+    });
+
+    document.querySelector('.otp-box')?.focus();
+
+  })
+  .catch((error) => {
+
+    console.error('RESEND ERROR:', error);
+
+    showToast('Failed to resend OTP email', 'error');
+
+  });
+}
+
+function verifyOTP() {
+  const entered = Array.from(document.querySelectorAll('.otp-box')).map(b => b.value).join('');
+  if (entered.length < 6) return;
+
+  // Show loading
+  document.getElementById('otpSection').classList.add('hidden');
+  document.getElementById('loadingSection').classList.remove('hidden');
+
+  setTimeout(() => {
+    document.getElementById('loadingSection').classList.add('hidden');
+    if (entered === currentOTP) {
+      clearInterval(timerInterval);
+      showToast('Identity verified successfully', 'success');
+      localStorage.removeItem('splitAuthData');
+      showScreen('success');
+    } else {
+      attempts++;
+      showToast('Invalid verification code', 'error');
+      document.getElementById('otpSection').classList.remove('hidden');
+      document.querySelectorAll('.otp-box').forEach(b => {
+        b.classList.add('error');
+        setTimeout(() => b.classList.remove('error'), 600);
+      });
+      if (attempts >= 3) {
+        showToast('Too many attempts. Verification locked.', 'error');
+        document.getElementById('verifyBtn').disabled = true;
+        document.getElementById('verifyBtn').textContent = 'Locked - Too many attempts';
+        document.getElementById('verifyBtn').style.opacity = '0.5';
+      }
+    }
+  }, 1500);
+}
+
+function resetVerify() {
+  document.getElementById('emailSection').classList.remove('hidden');
+  document.getElementById('otpSection').classList.add('hidden');
+  document.getElementById('loadingSection').classList.add('hidden');
+  clearInterval(timerInterval);
+  localStorage.removeItem('splitAuthData');
+  attempts = 0;
+  const btn = document.getElementById('verifyBtn');
+  btn.disabled = false; btn.textContent = 'Verify Code'; btn.style.opacity = '1';
+  showToast('Verification reset successfully', 'info');
+}
+
+function restartApp() {
+
+  localStorage.removeItem('splitAuthData');
+
+  currentOTP = '';
+  currentEmail = '';
+  attempts = 0;
+
+  location.reload();
+
+}
+
+// Particles
+function createParticles() {
+  const container = document.getElementById('particles');
+  for (let i = 0; i < 20; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.top = Math.random() * 100 + '%';
+    p.style.animationDelay = Math.random() * 4 + 's';
+    p.style.opacity = Math.random() * 0.5 + 0.1;
+    container.appendChild(p);
+  }
+}
+
+window.addEventListener('load', () => {
+  const saved = JSON.parse(localStorage.getItem('splitAuthData'));
+
+  if (!saved) return;
+
+  const remaining = saved.expiresAt - Date.now();
+
+  if (remaining <= 0) {
+    localStorage.removeItem('splitAuthData');
+    return;
+  }
+
+  currentOTP = saved.otp;
+  attempts = saved.attempts || 0;
+  currentEmail = saved.email || '';
+
+  showScreen('verify');
+
+  document.getElementById('emailSection').classList.add('hidden');
+  document.getElementById('otpSection').classList.remove('hidden');
+
+  document.getElementById('shown1').textContent = saved.shown1;
+  document.getElementById('shown2').textContent = saved.shown2;
+
+  setupOTPInputs();
+  startTimer(saved.expiresAt);
+});
+
+createParticles();
+lucide.createIcons();
+</script>
+</html>
