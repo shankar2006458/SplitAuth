@@ -192,6 +192,27 @@ body { background: #0b1020; }
     max-width: 100%;
   }
 }
+@media (max-width: 640px) {
+
+  #learnCard {
+    transform-origin: center;
+  }
+
+  #learnCard h2 {
+    font-size: 1.7rem;
+    line-height: 1.1;
+  }
+
+  #learnCard p {
+    font-size: 12px;
+  }
+
+  #learnCard .btn-primary {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+}
 </style>
   <style>body { box-sizing: border-box; }</style>
  </head>
@@ -210,7 +231,7 @@ body { background: #0b1020; }
      <h1 class="text-3xl md:text-4xl font-800 text-white mb-2" style="letter-spacing:-0.5px;">Split<span style="color:#00e5ff;">Auth</span></h1>
      <h2 id="headline" class="text-xl md:text-2xl font-600 text-white mt-4 mb-3">Secure Authentication in Seconds</h2>
      <p id="subtitle" class="text-sm md:text-base mb-8" style="color:rgba(255,255,255,0.5);">Split OTP verification — part shown here, part sent to you. Combine both to verify your identity securely.</p>
-     <div class="flex flex-col sm:flex-row gap-3 w-full max-w-xs"><button class="btn-primary flex-1" onclick="showScreen('verify')">Start Verification</button> <button class="btn-secondary flex-1" onclick="showScreen('verify')">Learn More</button>
+     <div class="flex flex-col sm:flex-row gap-3 w-full max-w-xs"><button class="btn-primary flex-1" onclick="showScreen('verify')">Start Verification</button> <button class="btn-secondary flex-1" onclick="openLearnMore()">Learn More</button>
      </div><!-- Floating icons -->
      <div class="flex gap-6 mt-12 opacity-30"><i data-lucide="fingerprint" style="width:20px;height:20px;color:#00e5ff;animation:float 3s ease-in-out infinite;"></i> <i data-lucide="key" style="width:20px;height:20px;color:#a78bfa;animation:float 3.5s ease-in-out infinite;"></i> <i data-lucide="scan" style="width:20px;height:20px;color:#00e5ff;animation:float 4s ease-in-out infinite;"></i>
      </div>
@@ -273,6 +294,139 @@ body { background: #0b1020; }
    </div>
   </div>
   <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Learn More Modal -->
+  <div id="learnMoreModal" class="fixed inset-0 z-[999] hidden items-center justify-center px-4">
+
+    <!-- Backdrop -->
+    <div
+      id="learnBackdrop"
+      class="absolute inset-0 bg-black/60 backdrop-blur-md opacity-0 transition-all duration-300"
+      onclick="closeLearnMore()"
+    ></div>
+
+    <!-- Modal Card -->
+    <div
+      id="learnCard"
+      class="relative w-[92%] max-w-[360px] sm:max-w-lg glass glow-purple p-4 sm:p-7 rounded-[22px] sm:rounded-[28px] scale-90 opacity-0 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden max-h-[82vh] overflow-y-auto"
+    >
+
+      <!-- Glow -->
+      <div class="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-cyan-400/10 blur-3xl"></div>
+
+      <!-- Close -->
+      <button
+        onclick="closeLearnMore()"
+        class="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-all hover:bg-white/10"
+      >
+        <i data-lucide="x" style="width:18px;height:18px;color:white;"></i>
+      </button>
+
+      <!-- Header -->
+      <div class="mb-4 sm:mb-6 text-center">
+        <div
+          class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 mx-auto"
+          style="background:rgba(0,255,255,0.08); border:1px solid rgba(0,255,255,0.2);"
+        >
+          <i data-lucide="shield-check" style="width:30px;height:30px;color:#00e5ff;"></i>
+        </div>
+
+        <h2 class="text-2xl font-700 text-white mb-2">
+          Why SplitAuth?
+        </h2>
+
+        <p class="text-sm leading-relaxed" style="color:rgba(255,255,255,0.55);">
+          A smarter authentication experience designed for better privacy, security, and trust. Developed By ~ Shankar Prasad Pyke.
+        </p>
+      </div>
+
+      <!-- Features -->
+      <div class="space-y-2.5 sm:space-y-4">
+
+        <div class="flex items-start gap-4">
+          <div class="mt-1">
+            <i data-lucide="shield" style="width:18px;height:18px;color:#00e5ff;"></i>
+          </div>
+          <div>
+            <h4 class="text-white font-600 text-sm">Split OTP Security</h4>
+            <p class="text-xs mt-1" style="color:rgba(255,255,255,0.45);">
+              OTP is divided between screen and email for stronger protection.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-4">
+          <div class="mt-1">
+            <i data-lucide="zap" style="width:18px;height:18px;color:#a78bfa;"></i>
+          </div>
+          <div>
+            <h4 class="text-white font-600 text-sm">Fast Verification</h4>
+            <p class="text-xs mt-1" style="color:rgba(255,255,255,0.45);">
+              Complete authentication in seconds with minimal friction.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-4">
+          <div class="mt-1">
+            <i data-lucide="mail-check" style="width:18px;height:18px;color:#00e5ff;"></i>
+          </div>
+          <div>
+            <h4 class="text-white font-600 text-sm">Secure Email Delivery</h4>
+            <p class="text-xs mt-1" style="color:rgba(255,255,255,0.45);">
+              Remaining verification digits are safely delivered to your inbox.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-4">
+          <div class="mt-1">
+            <i data-lucide="scan-face" style="width:18px;height:18px;color:#a78bfa;"></i>
+          </div>
+          <div>
+            <h4 class="text-white font-600 text-sm">Modern Experience</h4>
+            <p class="text-xs mt-1" style="color:rgba(255,255,255,0.45);">
+              Smooth animations, futuristic UI, and responsive mobile design.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-4">
+          <div class="mt-1">
+            <i data-lucide="shield-check" style="width:18px;height:18px;color:#00e5ff;"></i>
+          </div>
+          <div>
+            <h4 class="text-white font-600 text-sm">Trusted Device Support</h4>
+            <p class="text-xs mt-1" style="color:rgba(255,255,255,0.45);">
+              Save trusted devices for faster future verification.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-4">
+          <div class="mt-1">
+            <i data-lucide="sparkles" style="width:18px;height:18px;color:#a78bfa;"></i>
+          </div>
+          <div>
+            <h4 class="text-white font-600 text-sm">Premium Security Feel</h4>
+            <p class="text-xs mt-1" style="color:rgba(255,255,255,0.45);">
+              Built with a clean glassmorphism interface and polished interactions.
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <button
+        onclick="closeLearnMore()"
+        class="btn-primary w-full mt-4 sm:mt-7"
+      >
+        Got It
+      </button>
+
+    </div>
+  </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
@@ -633,6 +787,47 @@ window.addEventListener('load', () => {
 });
 
 createParticles();
+
+function openLearnMore() {
+
+  const modal = document.getElementById('learnMoreModal');
+  const backdrop = document.getElementById('learnBackdrop');
+  const card = document.getElementById('learnCard');
+
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+
+  requestAnimationFrame(() => {
+    backdrop.classList.remove('opacity-0');
+
+    card.classList.remove('opacity-0', 'scale-90');
+    card.classList.add('opacity-100', 'scale-100');
+  });
+
+  document.body.style.overflow = 'hidden';
+
+  lucide.createIcons();
+}
+
+function closeLearnMore() {
+
+  const modal = document.getElementById('learnMoreModal');
+  const backdrop = document.getElementById('learnBackdrop');
+  const card = document.getElementById('learnCard');
+
+  backdrop.classList.add('opacity-0');
+
+  card.classList.remove('opacity-100', 'scale-100');
+  card.classList.add('opacity-0', 'scale-90');
+
+  setTimeout(() => {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+
+    document.body.style.overflow = 'auto';
+  }, 300);
+}
+
 lucide.createIcons();
 </script>
 </html>
